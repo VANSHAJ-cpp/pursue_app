@@ -8,6 +8,8 @@ import 'package:pursue/mobile_screens/auth/login_screen.dart';
 import 'package:get/get.dart';
 import 'package:pursue/common_widgets/apptoast.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class PostPaymentScreen extends StatefulWidget {
   const PostPaymentScreen({Key? key}) : super(key: key);
@@ -20,11 +22,22 @@ class _PostPaymentScreenState extends State<PostPaymentScreen> {
   FirebaseAuth auth = FirebaseAuth.instance;
   String userName = "";
   String userEmail = "";
+  List<dynamic> careerData = [];
+  String? careerName;
+  String? currCareerName;
+
+  List<dynamic> _messageCareerPath = [];
+  List<dynamic> _messsageSkills = [];
+  String? _messageDescription;
+  List<dynamic> _messageCourses = [];
+  List<dynamic> _messageTopColleges = [];
+  List<dynamic> _messageExpectedSalary = [];
 
   @override
   void initState() {
     super.initState();
     getUserInfo();
+    fetchData();
   }
 
   void getUserInfo() {
@@ -41,6 +54,20 @@ class _PostPaymentScreenState extends State<PostPaymentScreen> {
         debugPrint('Name: $userName');
         debugPrint('Email: $userEmail');
       }
+    }
+  }
+
+  Future<void> fetchData() async {
+    final response = await http
+        .get(Uri.parse('http://54.160.218.173:8080/admin/careerDescription'));
+    print(response.statusCode);
+    if (response.statusCode == 200) {
+      // setState(() {
+      careerData = json.decode(response.body)['result'];
+      print(careerData.length);
+      // });
+    } else {
+      throw Exception('Failed to load data');
     }
   }
 
@@ -158,52 +185,81 @@ class _PostPaymentScreenState extends State<PostPaymentScreen> {
   }
 
   Widget get buildCareerSuggestionSection {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return FutureBuilder(
+      future: fetchData(),
+      builder: (context, snapshot) {
+        if(snapshot.connectionState == ConnectionState.done){
+          return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
           children: [
-            const Text(
-              "Career Suggestions",
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w600,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Career Suggestions",
+                  style: TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Image.asset(
+                  "assets/images/screen_10_slide_arrow.png",
+                  width: 30,
+                  height: 15,
+                  fit: BoxFit.contain,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  ...List.generate(
+                    careerData.length,
+                    (index) => Row(
+                      children: [
+                        buildCareerOption(
+                          isSelected: isSelectedList[index],
+                          text: careerData[index]['Name'].toString(),
+                          onTap: () {
+                            setState(() {
+                              isSelectedList =
+                                  List.generate(10, (i) => i == index);
+                              _messageExpectedSalary =
+                                  careerData[index]["AverageSalaries"];
+                              _messageCareerPath =
+                                  careerData[index]['CareerPathSteps'];
+                              careerName = careerData[index]['Name'];
+                              currCareerName = careerName.toString();
+                              _messageDescription =
+                                  careerData[index]['Description'];
+                              _messageCourses = careerData[index]['Courses'];
+                              _messageTopColleges =
+                                  careerData[index]['TopColleges'];
+                              _messsageSkills = careerData[index]['Skills'];
+                              
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                    ),
+                  )
+                ],
               ),
-            ),
-            Image.asset(
-              "assets/images/screen_10_slide_arrow.png",
-              width: 30,
-              height: 15,
-              fit: BoxFit.contain,
-            ),
+            )
           ],
         ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              ...List.generate(
-                10,
-                (index) => Row(
-                  children: [
-                    buildCareerOption(
-                      isSelected: isSelectedList[index],
-                      text: "Software Engineer",
-                      onTap: () {
-                        setState(() {
-                          isSelectedList = List.generate(10, (i) => i == index);
-                        });
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                  ],
-                ),
-              )
-            ],
-          ),
-        )
-      ],
+      );
+        }else {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+        
+      },
     );
   }
 
@@ -245,58 +301,61 @@ class _PostPaymentScreenState extends State<PostPaymentScreen> {
 
 // Career details depend on type of btn tapped.
   Widget get buildCareerAbout {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Software Engineer",
-          style: TextStyle(
-            fontSize: 23,
-            fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            currCareerName.toString(),
+            style: TextStyle(
+              fontSize: 23,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'Coders design and create computer systems and applications to solve '
-          "real-world problems.",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
+          const SizedBox(height: 5),
+          const Text(
+            'Coders design and create computer systems and applications to solve '
+            "real-world problems.",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        ...List.generate(
-          5,
-          (_) => const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: 10),
-              Column(
-                children: [
-                  Text(
-                    "\u25CF",
+          const SizedBox(height: 10),
+          ...List.generate(
+            5,
+            (_) => const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(width: 10),
+                Column(
+                  children: [
+                    Text(
+                      "\u25CF",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Designing and maintaining software Designing and maintaining softwareDesigning and maintaining software",
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "Designing and maintaining software Designing and maintaining softwareDesigning and maintaining software",
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 16,
-                  ),
-                ),
-              )
-            ],
+                )
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
