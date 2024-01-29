@@ -260,6 +260,7 @@ class _ChatScreenState extends State<ChatScreen1> {
 
       if (selectedProfession != "Basic" && allQuestionsAnswered) {
         print(optionSelected);
+        selectedOptions = subOptions;
         print(subOptions);
         showDialog(
           context: context,

@@ -12,6 +12,8 @@ import 'package:pursue/mobile_screens/payment/payment_screen.dart';
 import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class CareerResultScreen extends StatefulWidget {
   final HyperSDK hyperSDK;
@@ -22,6 +24,8 @@ class CareerResultScreen extends StatefulWidget {
 }
 
 class _CareerResultScreenState extends State<CareerResultScreen> {
+
+  int careerResLen = 0;
 
  @override
   void initState() {
@@ -80,6 +84,51 @@ void proceedToPaymentScreen() {
     Get.to(() => PaymentScreen(hyperSDK: widget.hyperSDK, amount: "1"));
 }
 
+
+Future<List<String>> fetchCareerSuggestions(List<List<String>> subOptions) async {
+  List<String> careerSuggestions = [];
+
+  // Make the API request
+  final response = await http.get(Uri.parse('https://api.pursueit.in/admin/readRepository/Repository'));
+
+  if (response.statusCode == 200) {
+    // Parse the response JSON
+    List<dynamic> data = json.decode(response.body);
+    
+    // Iterate through each item in subOptions
+    for (List<String> parameters in subOptions) {
+      // Find matching entry in the response data
+      var match = data.firstWhere((entry) {
+        List<String> entryParameters = List<String>.from(entry['Parameters']);
+        return entryParameters.every((param) => parameters.contains(param));
+      }, orElse: () => null);
+
+      if (match != null) {
+        // Add CareerSuggestions to the result
+        careerResLen = careerSuggestions.length;
+        careerSuggestions.addAll(List<String>.from(match['CareerSuggestions']));
+      }
+    }
+  } else {
+    throw Exception('Failed to load data');
+  }
+
+  return careerSuggestions;
+}
+
+void main() async {
+  // List<List<String>> subOptions = [
+  //   ["12th", "Science", "Computer"],
+  //   ["12th", "Arts", "English"]
+  // ];
+
+  try {
+    List<String> suggestions = await fetchCareerSuggestions(selectedOptions);
+    print('Career Suggestions: $suggestions');
+  } catch (e) {
+    print('Error: $e');
+  }
+}
 
 
   @override
