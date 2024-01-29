@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, no_logic_in_create_state, prefer_initializing_formals
+// ignore_for_file: prefer_const_constructors, no_logic_in_create_state, prefer_initializing_formals, prefer_interpolation_to_compose_strings
 
 import 'dart:convert';
 import 'dart:io';
@@ -96,10 +96,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
           var errorCode = args["errorCode"] ?? " ";
           var errorMessage = args["errorMessage"] ?? " ";
 
-          // WidgetsBinding.instance.addPostFrameCallback((_) {
-          //   Navigator.pushReplacement(context,
-          //       MaterialPageRoute(builder: (context) => const SuccessScreen()));
-          // });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => const SuccessScreen()));
+          });
           switch (status) {
             case "backpressed":
               {
@@ -171,11 +171,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<Map<String, dynamic>> makeApiCall(amount) async {
   var url = Uri.parse('https://api.juspay.in/session');
 
+  var username = '64E7E748D4844698D633E0CA892934';
+  var password = '';
+  var basicAuth = 'Basic ' + base64Encode(utf8.encode('$username:$password'));
 
-  // API Key Should never be used from client side, it should always be stored securely on server.
-  // And all the API calls requiring API key should always be done from server
   var headers = {
-    'Authorization': 'Basic 64E7E748D4844698D633E0CA892934',
+    'Authorization': basicAuth,
     'x-merchantid': 'pursue',
     'Content-Type': 'application/json',
   };

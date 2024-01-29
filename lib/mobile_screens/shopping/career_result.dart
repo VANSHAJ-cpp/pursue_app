@@ -1,42 +1,86 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:hypersdkflutter/hypersdkflutter.dart';
 import 'package:pursue/common_widgets/common_logo.dart';
 import 'package:pursue/common_widgets/rounded_btn.dart';
+import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/payment/payment_screen.dart';
 import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 
-class CareerResultScreen extends StatelessWidget {
+class CareerResultScreen extends StatefulWidget {
   final HyperSDK hyperSDK;
   const CareerResultScreen({Key? key, required this.hyperSDK}) : super(key: key);
 
-  void initiateHyperSDK() async {
-    if (await hyperSDK.isInitialised()) {
-      var initiatePayload = {
-        "requestId": const Uuid().v4(),
-        "service": "in.juspay.hyperpay",
-        "payload": {
-          "action": "initiate",
-          "merchantId": "pursue",
-          "clientId": "pursue",
-          "environment": "production"
-        }
-      };
-      await hyperSDK.initiate(initiatePayload, initiateCallbackHandler);
-      // block:end:initiate-sdk
+  @override
+  State<CareerResultScreen> createState() => _CareerResultScreenState();
+}
+
+class _CareerResultScreenState extends State<CareerResultScreen> {
+
+ @override
+  void initState() {
+    super.initState();
+    getUserInfo();
+  }
+
+  String userName = "";
+  // String userEmail = "";
+
+  void getUserInfo() {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final String? name = user.displayName;
+      final String? email = user.email;
+      if (name != null) {
+        setState(() {
+          userName = name;
+          userEmail = email!;
+        });
+
+        debugPrint('Name: $userName');
+        debugPrint('Email: $userEmail');
+      }
     }
   }
 
+  void initiateHyperSDK() async {
+    if (!(await widget.hyperSDK.isInitialised())) {
+        // Only initiate if SDK is not already initialized
+        var initiatePayload = {
+          "requestId": const Uuid().v4(),
+          "service": "in.juspay.hyperpay",
+          "payload": {
+            "action": "initiate",
+            "merchantId": "pursue",
+            "clientId": "pursue",
+            "environment": "production"
+          }
+        };
+        await widget.hyperSDK.initiate(initiatePayload, initiateCallbackHandler);
+    } else {
+        // If already initialized, we can proceed to process
+        proceedToPaymentScreen();
+    }
+}
   void initiateCallbackHandler(MethodCall methodCall) {
     if (methodCall.method == "initiate_result") {
-      // check initiate result
+        // Check results and based on the result decide next action
+        proceedToPaymentScreen();
     }
-  }
+}
+
+void proceedToPaymentScreen() {
+    // Now that we have initiated the SDK, we can navigate to the PaymentScreen
+    Get.to(() => PaymentScreen(hyperSDK: widget.hyperSDK, amount: "1"));
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +197,7 @@ class CareerResultScreen extends StatelessWidget {
                       title: "Grab the offer Now!",
                       onTap: () {
                         initiateHyperSDK();
-                        Get.to(() => PostPaymentScreen());
+                        // Get.to(() => PaymentScreen(hyperSDK: hyperSDK, amount: "50"));
                       }),
                   const SizedBox(height: 10),
                 ],
