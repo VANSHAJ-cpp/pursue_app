@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,6 +9,7 @@ import 'package:hypersdkflutter/hypersdkflutter.dart';
 import 'package:pursue/common_widgets/common_logo.dart';
 import 'package:pursue/common_widgets/rounded_btn.dart';
 import 'package:pursue/main.dart';
+import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
 import 'package:pursue/mobile_screens/payment/payment_screen.dart';
 import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:uuid/uuid.dart';
@@ -15,6 +17,9 @@ import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+String userName = "";
+String userEmail = "";
+List<String> careerSuggesed = [];
 class CareerResultScreen extends StatefulWidget {
   final HyperSDK hyperSDK;
   const CareerResultScreen({Key? key, required this.hyperSDK}) : super(key: key);
@@ -33,7 +38,6 @@ class _CareerResultScreenState extends State<CareerResultScreen> {
     getUserInfo();
   }
 
-  String userName = "";
   // String userEmail = "";
 
   void getUserInfo() {
@@ -41,6 +45,7 @@ class _CareerResultScreenState extends State<CareerResultScreen> {
     if (user != null) {
       final String? name = user.displayName;
       final String? email = user.email;
+      print(name);
       if (name != null) {
         setState(() {
           userName = name;
@@ -52,6 +57,8 @@ class _CareerResultScreenState extends State<CareerResultScreen> {
       }
     }
   }
+
+
 
   void initiateHyperSDK() async {
     if (!(await widget.hyperSDK.isInitialised())) {
@@ -81,7 +88,7 @@ class _CareerResultScreenState extends State<CareerResultScreen> {
 
 void proceedToPaymentScreen() {
     // Now that we have initiated the SDK, we can navigate to the PaymentScreen
-    Get.to(() => PaymentScreen(hyperSDK: widget.hyperSDK, amount: "1"));
+    Get.to(() => PaymentScreen(hyperSDK: widget.hyperSDK, amount: amount));
 }
 
 
@@ -211,7 +218,7 @@ void main() async {
                   ),
                   const SizedBox(height: 15),
                   SingleChildScrollView(
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -224,7 +231,7 @@ void main() async {
                           ),
                         ),
                         Text(
-                          "\u{20B9}${249}",
+                          amount,
                           style: TextStyle(
                             color: Color(0xff2F80ED),
                             fontSize: 18,
@@ -246,6 +253,7 @@ void main() async {
                       title: "Grab the offer Now!",
                       onTap: () {
                         initiateHyperSDK();
+                        CircularProgressIndicator();
                         // Get.to(() => PaymentScreen(hyperSDK: hyperSDK, amount: "50"));
                       }),
                   const SizedBox(height: 10),

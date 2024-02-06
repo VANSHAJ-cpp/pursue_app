@@ -4,12 +4,19 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hypersdkflutter/hypersdkflutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:pursue/mobile_screens/auth/sign_up_with_emailandpass.dart';
+import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
 import 'package:pursue/mobile_screens/payment/failedScreen.dart';
+import 'package:pursue/mobile_screens/payment/payment_details.dart';
 import 'package:pursue/mobile_screens/payment/successScreen.dart';
+import 'package:pursue/main.dart';
+import 'package:pursue/mobile_screens/shopping/career_result.dart';
 
 class PaymentScreen extends StatefulWidget {
   final HyperSDK hyperSDK;
@@ -27,14 +34,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
   var paymentSuccess = false;
   var paymentFailed = false;
   var amount = "0";
+  var orderId = "";
+  var customerID = "";
+  bool isUserPaid = false;
+
+  List<String> resTappedOptions = tappedOptions;
   
   _PaymentScreenState(amount) {
     this.amount = amount;
   }
 
+  Future<void> savePaymentDetails() async {
+    var paymentDetails = PaymentDetails(
+      userName: userName, 
+      customerID: customerID, 
+      orderID: orderId, 
+      userEmail: userEmail, 
+      timestamp: DateTime.now(),
+      tappedOptions: resTappedOptions,
+      careerSuggesed: careerSuggesed,
+      isUserPaid: isUserPaid
+    );
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('payment_details')
+          .add(paymentDetails.toMap());
+          print("user name: $userName \n"  "user email: $userEmail \n" "customerID: $customerID \n" "orderID: $orderId \n" "time stamp: ${DateTime.now} \n" "tapped Options: $resTappedOptions");
+    } catch (e) {
+      print("Error saving payment details: $e");
+    }
+  }
+
+
    void callProcess(amount) async {
     processCalled = true;
-    var processPayload = await makeApiCall(amount);
+    var processPayload = await makeApiCall(amount, userEmail);
     // Get process payload from backend
     // block:start:fetch-process-payload
     // var processPayload = await getProcessPayload(widget.amount);
@@ -80,6 +115,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 // Successful Transaction
                 // check order status via S2S API
                 // block:end:check-order-status
+                setState(() {
+                  isUserPaid = true;
+                });
+                savePaymentDetails();
                 Navigator.push(context,
                     MaterialPageRoute(builder: (context) => SuccessScreen()));
               }
@@ -98,7 +137,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const SuccessScreen()));
+                MaterialPageRoute(builder: (context) => const FailedScreen()));
           });
           switch (status) {
             case "backpressed":
@@ -168,7 +207,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Future<Map<String, dynamic>> makeApiCall(amount) async {
+Future<Map<String, dynamic>> makeApiCall(String amount, String userEmail) async {
   var url = Uri.parse('https://api.juspay.in/session');
 
   var username = '64E7E748D4844698D633E0CA892934';
@@ -183,18 +222,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   var rng = Random();
   var number = rng.nextInt(900000) + 100000;
+  customerID = "${number}p";
+  orderId = "p$number";
 
   var requestBody = {
-    "order_id": "test$number",
+    "order_id": orderId,
     "amount": amount,
-    "customer_id": "9876543201",
-    "customer_email": "avanishraj005@mail.com",
-    "customer_phone": "9876543201",
+    "customer_id": customerID,
+    "customer_email": userEmail,
+    "customer_phone": userEmail,
     "payment_page_client_id": "pursue",
     "action": "paymentPage",
     "description": "Complete your payment",
-    "first_name": "Avanish",
-    "last_name": "Raj"
+    "first_name": userName,
+    "last_name": ""
   };
 
   var response =
@@ -206,33 +247,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
   } else {
     throw Exception('API call failed with status code ${response.statusCode}');
   }
-  }
+}
 
-  
   @override
   Widget build(BuildContext context) {
     if (!processCalled) {
       callProcess(amount);
     }
-    return WillPopScope(
-      onWillPop: () async {
-        if (Platform.isAndroid) {
-          var backpressResult = await widget.hyperSDK.onBackPress();
-
-          if (backpressResult.toLowerCase() == "true") {
-            return false;
+    return SafeArea(
+      child: WillPopScope(
+        onWillPop: () async {
+          if (Platform.isAndroid) {
+            var backpressResult = await widget.hyperSDK.onBackPress();
+    
+            if (backpressResult.toLowerCase() == "true") {
+              return false;
+            } else {
+              return true;
+            }
           } else {
             return true;
           }
-        } else {
-          return true;
-        }
-      },
-      // block:end:onBackPressed
-      child: Container(
-        color: Colors.white,
-        child: Center(
-          child: showLoader ? const CircularProgressIndicator() : Container(),
+        },
+        // block:end:onBackPressed
+        child: Container(
+          color: Colors.white,
+          child: Center(
+            child: showLoader ? const CircularProgressIndicator() : Container(),
+          ),
         ),
       ),
     );

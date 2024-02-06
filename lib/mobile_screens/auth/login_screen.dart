@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:pursue/common_widgets/apptoast.dart';
+import 'package:pursue/mobile_screens/shopping/career_result.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pursue/common_widgets/common_logo.dart';
@@ -104,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 text: "Terms and Conditions",
                                 style: TextStyle(
                                   color: Colors.white,
-                                  decoration: TextDecoration.underline,
+                                  // decoration: TextDecoration.underline,
                                 ),
                               ),
                               TextSpan(text: " & "),
@@ -131,7 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget _buildBottomView() {
   Widget buildIconContent({required String iconPath, required String text}) {
     return Container(
       width: 364,
@@ -187,6 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
           AppToast().toastMessage(
               "You're Signing in with your Google Account : $email");
         }
+        userName = name;
+        userEmail = email;
         adduserdetails(
           name,
           email,
@@ -194,12 +196,16 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       AppToast().toastMessage(e.toString());
-      // Handle error or exceptions if needed
       debugPrint('Error signing in with Google: $e');
     }
   }
 
-  Future adduserdetails(String name, String email) async {
+  Future adduserdetails(String name, String email,
+      {int? phoneNumber,
+      bool? didStartChatbot,
+      bool? isPaidUser,
+      List<String>? options,
+      List<String>? finalCareerOptions}) async {
     // Check if user with the same email already exists
     final existingDocs = await FirebaseFirestore.instance
         .collection('users')
@@ -209,9 +215,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (existingDocs.docs.isEmpty) {
       // Value doesn't exist, so add the data
       await FirebaseFirestore.instance.collection('users').add({
-        "id": DateTime.now().millisecondsSinceEpoch.toString(),
         'Name': name,
         'Email': email,
+        'PhoneNumber': phoneNumber ?? '__',
+        'DidStartChatbot': didStartChatbot ?? '__',
+        'IsPaidUser': isPaidUser ?? '__',
+        'Options': options ?? ['__'],
+        'FinalCareerOptions': finalCareerOptions ?? ['__'],
       });
       debugPrint('Data added successfully');
     } else {

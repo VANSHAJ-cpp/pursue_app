@@ -1,10 +1,17 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:pursue/main.dart';
+import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:pursue/mobile_screens/shopping/career_result.dart';
+import 'package:pursue/mobile_screens/payment/payment_details.dart';
+
+List<String> tappedOptions = [];
+String amount = "";
 
 class Question {
   final String question;
@@ -34,6 +41,9 @@ class _ChatScreenState extends State<ChatScreen1> {
   List<List<String>> subOptions = [];
   List<String> res = [];
   String? nextSection;
+  String customerID = '__';
+  String orderId = '__';
+  bool isUserPaid = false;
 
   String selectedProfession = "";
   List<Question> questions = [];
@@ -46,7 +56,93 @@ class _ChatScreenState extends State<ChatScreen1> {
     super.initState();
     print("initState");
     fetchData();
+    getUserInfo();
   }
+
+  void getUserInfo() {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final String? name = user.displayName;
+      final String? email = user.email;
+      print(name);
+      if (name != null) {
+        setState(() {
+          userName = name;
+          userEmail = email!;
+        });
+
+        debugPrint('Name: $userName');
+        debugPrint('Email: $userEmail');
+        // savePaymentDetails();
+      }
+    }
+  }
+
+
+  Future<void> savePaymentDetails() async {
+    var paymentDetails = PaymentDetails(
+      userName: userName, 
+      customerID: customerID, 
+      orderID: orderId, 
+      userEmail: userEmail, 
+      timestamp: DateTime.now(),
+      tappedOptions: tappedOptions,
+      careerSuggesed: careerSuggesed,
+      isUserPaid: isUserPaid
+    );
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('payment_details')
+          .add(paymentDetails.toMap());
+          print("user name: $userName \n"  "user email: $userEmail \n" "customerID: $customerID \n" "orderID: $orderId \n" "time stamp: ${DateTime.now} \n" "tapped Options: $tappedOptions");
+    } catch (e) {
+      print("Error saving payment details: $e");
+    }
+  }
+
+  Future<void> fetchPaymentSettingsAndNavigate() async {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  try {
+    DocumentSnapshot paymentSettingsSnapshot = 
+        await firestore.collection('settings').doc('paymentInfo').get();
+
+    if (paymentSettingsSnapshot.exists) {
+      Map<String, dynamic> paymentSettings = paymentSettingsSnapshot.data() as Map<String, dynamic>;
+      bool isPaymentOn = paymentSettings['isUpfrontPaymentOn'] ?? false;
+      int paymentAmount = paymentSettings['customUpfrontPayment'] ?? 0;
+      amount = paymentAmount.toString();
+      print(paymentAmount);
+      print(isPaymentOn);
+
+      if (isPaymentOn) {
+        // Navigate to the payment screen with the payment amount
+        await Future.delayed(const Duration(seconds: 5));
+        Navigator.of(context, rootNavigator: true).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CareerResultScreen(hyperSDK: hyperSDK,),
+          ),
+        );
+      } else {
+        // Navigate to the resultant screen as no payment is required
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const PostPaymentScreen(),
+          ),
+        );
+      }
+    } else {
+      print("No payment settings found.");
+      // Handle the scenario when there's no settings data in Firestore
+    }
+  } catch (e) {
+    print('Error fetching payment settings: $e');
+    // Handle the error, maybe show a dialog or a snackbar
+  }
+}
+
 
   void _handleSubmitted(String text) {
     print("_handleSubmitted");
@@ -235,6 +331,7 @@ class _ChatScreenState extends State<ChatScreen1> {
   void _handleOptionSelected(String selectedOption) {
     if (isNextSectionFetched) {
       optionSelected.add(selectedOption);
+      tappedOptions.add(selectedOption);
       updateSubOptions();
     }
     print("_handleOptionSelected");
@@ -252,7 +349,7 @@ class _ChatScreenState extends State<ChatScreen1> {
   }
 
   void _checkAndNavigate() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_)  {
       print("current Question index after submission: $currentQuestionIndex");
       print("Next Section question length: $nextSectionQuestionLength");
       bool allQuestionsAnswered =
@@ -262,6 +359,7 @@ class _ChatScreenState extends State<ChatScreen1> {
         print(optionSelected);
         selectedOptions = subOptions;
         print(subOptions);
+        print(tappedOptions);
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -278,14 +376,13 @@ class _ChatScreenState extends State<ChatScreen1> {
             );
           },
         );
-        await Future.delayed(const Duration(seconds: 5));
+        
         // ignore: use_build_context_synchronously
-        Navigator.of(context, rootNavigator: true).pop();
-        // ignore: use_build_context_synchronously
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => CareerResultScreen(hyperSDK: hyperSDK,)),
-        );
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => CareerResultScreen(hyperSDK: hyperSDK,)),
+        // );
+        fetchPaymentSettingsAndNavigate();
       } else {
         print("Condition not met");
       }
@@ -329,12 +426,12 @@ class _ChatScreenState extends State<ChatScreen1> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("All Options"),
+          title: const Text("All Options"),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (String option in options)
-                Text(option, style: TextStyle(fontSize: 15)),
+                Text(option, style: const TextStyle(fontSize: 15)),
             ],
           ),
           actions: [
@@ -342,7 +439,7 @@ class _ChatScreenState extends State<ChatScreen1> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text("Close"),
+              child:const Text("Close"),
             ),
           ],
         );
@@ -368,7 +465,7 @@ class _ChatScreenState extends State<ChatScreen1> {
           decoration: isMe
               ? BoxDecoration(
                   color: color,
-                  borderRadius: BorderRadius.only(
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(25),
                     topLeft: Radius.circular(25),
                     bottomRight: Radius.circular(25),
@@ -428,7 +525,7 @@ class _ChatScreenState extends State<ChatScreen1> {
                 },
                 child: Center(
                   child: Text(option,
-                      style: GoogleFonts.raleway(
+                      style: GoogleFonts.raleway  (
                           fontSize: 16,
                           color: Colors.black,
                           fontWeight: FontWeight.w500)),
@@ -468,8 +565,8 @@ class _ChatScreenState extends State<ChatScreen1> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        children: [
+      child: const Row(
+        children:  [
           SizedBox(
             width: 20,
             height: 20,
@@ -489,11 +586,11 @@ class _ChatScreenState extends State<ChatScreen1> {
 
   Widget _buildTextComposer() {
     return Container(
-      padding: EdgeInsets.only(bottom: 5),
+      padding:const  EdgeInsets.only(bottom: 5),
       margin: const EdgeInsets.symmetric(horizontal: 3.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24.0),
-        boxShadow: [
+        boxShadow:const [
           BoxShadow(
             color: Colors.white,
             blurRadius: 10,
@@ -506,7 +603,7 @@ class _ChatScreenState extends State<ChatScreen1> {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Color(0xFFECECEC),
+                color: const Color(0xFFECECEC),
                 // border: Border.all(color: Colors.blue),
                 borderRadius: BorderRadius.circular(10.0),
               ),
@@ -518,12 +615,12 @@ class _ChatScreenState extends State<ChatScreen1> {
                   hintStyle: GoogleFonts.roboto(),
                   border: InputBorder.none,
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 ),
               ),
             ),
           ),
-          SizedBox(
+          const SizedBox(
             width: 3,
           ),
           Container(
@@ -532,7 +629,7 @@ class _ChatScreenState extends State<ChatScreen1> {
               borderRadius: BorderRadius.circular(10.0),
             ),
             child: IconButton(
-              icon: Icon(Icons.send, color: Colors.white),
+              icon: const Icon(Icons.send, color: Colors.white),
               onPressed: () {
                 if (_textController.text.isNotEmpty) {
                   _handleSubmitted(_textController.text);
@@ -556,15 +653,16 @@ class _ChatScreenState extends State<ChatScreen1> {
             mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 50.0, bottom: 70),
+              Padding(
+                padding:const EdgeInsets.only(top: 50.0, bottom: 70),
                 child: Column(
                   children: [
-                    Image(image: AssetImage("assets/images/pursue.png")),
-                    Text(
+                    Container(height: 60, width: 60,
+                      child: Image(image: AssetImage("assets/images/pursue.png"))),
+                    const Text(
                       "Pursue",
                       style:
-                          TextStyle(fontSize: 30, fontWeight: FontWeight.w500),
+                          TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
