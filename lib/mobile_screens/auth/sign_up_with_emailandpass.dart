@@ -15,9 +15,40 @@ import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
 import 'sign_in_with_email_and_pass.dart';
 import 'package:http/http.dart' as http;
 
-class SignUpWithEmailPass extends StatefulWidget {
-  const SignUpWithEmailPass({Key? key}) : super(key: key);
+class SignUpButton extends StatefulWidget {
+  final String title;
+  final Function onTap;
 
+  const SignUpButton({Key? key, required this.title, required this.onTap})
+      : super(key: key);
+
+  @override
+  _SignUpButtonState createState() => _SignUpButtonState();
+}
+
+class _SignUpButtonState extends State<SignUpButton> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+        ? CircularProgressIndicator() 
+        : RoundedButton(
+            title: widget.title,
+            onTap: () async {
+              setState(() {
+                _isLoading = true;
+              });
+              await widget.onTap();
+              setState(() {
+                _isLoading = false;
+              });
+            },
+          );
+  }
+}
+
+class SignUpWithEmailPass extends StatefulWidget {
   @override
   State<SignUpWithEmailPass> createState() => _SignUpWithEmailPassState();
 }
@@ -146,17 +177,18 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
                                   BorderRadius.all(Radius.circular(10)))),
                     ),
                     SizedBox(height: 10),
-                    RoundedButton(
-                        title: "Continue",
-                        onTap: () {
-                          // userName = nameController.text;
-                          if (passwordConfirmed() == true) {
-                            signUpWithEmailAndPassword();
-                          } else {
-                            AppToast().toastMessage(
-                                "Passwords to do match, kindly re-enter to try again");
-                          }
-                        }),
+                    SignUpButton(
+                      title: "Continue",
+                      onTap: () {
+                        // userName = nameController.text;
+                        if (passwordConfirmed() == true) {
+                          signUpWithEmailAndPassword();
+                        } else {
+                          AppToast().toastMessage(
+                              "Passwords to do match, kindly re-enter to try again");
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -173,10 +205,10 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
                     children: [
                       TextSpan(
                         text: 'Already have an Account? ',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                       TextSpan(
-                        
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
                             Get.to(() => SignInWithEmailPass());
@@ -210,10 +242,12 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
       );
       await userCredential.user?.sendEmailVerification();
       var id = DateTime.now().millisecondsSinceEpoch.toString();
-      createUser(id, nameController.text.toString(), emailController.text.toString());
-      if (isUserCreated == true) {
-        Get.to(() => ChatScreen1());
-      }
+      createUser(
+          id, nameController.text.toString(), emailController.text.toString());
+
+      // if (isUserCreated == true) {
+      Get.to(() => ChatScreen1());
+      // }
       AppToast().toastMessage('Successfully Created Account!');
 
       // Signed in
@@ -240,38 +274,32 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
     }
   }
 
-  // Future adduserdetails(String id, String name, String email) async {
-  //   await FirebaseFirestore.instance.collection('users').add({
-  //     "id": id,
-  //     'Name': name,
-  //     'Email': email,
-  //   });
-  // }
-
   Future<void> createUser(String id, String name, String email) async {
-    // Define the endpoint URL
-    String apiUrl = 'https://api.pursueit.in/user/addUser';
-
-    // Generate unique ID for the user (milliseconds since epoch)
-
-    // Create a JSON object with the user details
-    Map<String, dynamic> userData = {
-      'UserID': id,
-      'OrderID': "__",
-      'CustomerID': "CID$id",
-      'Name': name,
-      'Email': email,
-      'PhoneNumber': 0,
-      'DidStartChatbot': false,
-      'IsPaidUser': false,
-      'Options': [""],
-      'FinalCareerOptions': [""],
-    };
-
-    // Convert the user data to JSON format
-    String requestBody = jsonEncode(userData);
-
     try {
+      // Get the current user's UID
+      String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      print(uid);
+
+      // Define the endpoint URL
+      String apiUrl = 'https://api.pursueit.in/user/addUser';
+
+      // Create a JSON object with the user details
+      Map<String, dynamic> userData = {
+        'UserID': id,
+        'OrderID': "__",
+        'CustomerID': "CID$id",
+        'Name': name,
+        'Email': email,
+        'PhoneNumber': 0,
+        'DidStartChatbot': false,
+        'IsPaidUser': false,
+        'Options': [],
+        'FinalCareerOptions': [],
+      };
+
+      // Convert the user data to JSON format
+      String requestBody = jsonEncode(userData);
+
       // Send a POST request to the API endpoint
       var response = await http.post(
         Uri.parse(apiUrl),
@@ -284,10 +312,13 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
       // Check if the request was successful (status code 200)
       if (response.statusCode == 200) {
         // Handle success
-        setState(() {
-          isUserCreated = true;
-        });
         print('User created successfully');
+
+        // Store the user data in Firestore with the UID as the document ID
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(uid)
+            .set(userData);
       } else {
         // Handle error
         print('Failed to create user. Status code: ${response.statusCode}');

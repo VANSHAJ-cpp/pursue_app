@@ -45,6 +45,7 @@ dependencies:
   flutter_share: ^2.0.0
   fade_shimmer: ^2.2.0
   hypersdkflutter: ^4.0.0
+  lottie: 
   uuid: ^4.2.2
 # 
 

@@ -21,9 +21,12 @@ class Intro1Screen extends StatelessWidget {
         ),
         child: SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CommonLogo(
+              Container(
+                child: Column(children: [
+                  CommonLogo(
                 logoWidth: 64,
                 logoHeight: 53,
               ),
@@ -33,92 +36,98 @@ class Intro1Screen extends StatelessWidget {
                 width: 296,
                 height: 220,
               ),
-              // Spacer(),
-              Container(
-                height: 350,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(35),
-                    topRight: Radius.circular(35),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
-                      blurRadius: 1,
+                ]),
+              ),
+              SizedBox(height: 20,),
+              Padding(
+                padding: const EdgeInsets.only(left: 10.0, right: 10),
+                child: Container(
+                  height: 400,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(35),
+                      topRight: Radius.circular(35),
                     ),
-                  ],
-                ),
-                padding: EdgeInsets.only(left: 10, right: 10, top: 20),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 15),
-                      Text(
-                        "Find Your Dream Career",
-                        style: GoogleFonts.roboto(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 1,
                       ),
-                      SizedBox(height: 10),
-                      Text(
-                        "Welcome to the world of possibilities!\n Discover your true calling and find the career\n path that lights up your future.",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.roboto(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w300,
+                    ],
+                  ),
+                  padding: EdgeInsets.only(left: 10, right: 10, top: 20),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 15),
+                        Text(
+                          "Find Your Dream Career",
+                          style: GoogleFonts.roboto(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 25),
-                      RoundedButton(
-                          title: "Next",
-                          onTap: () {
-                            Get.to(() => Intro2Screen());
-                          }),
-                      SizedBox(height: 10),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                Get.to(() => LoginScreen());
-                              },
-                              child: Text(
-                                "Skip",
-                                style: GoogleFonts.roboto(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w400,
-                                  color: Color(0xff2F80ED),
+                        SizedBox(height: 10),
+                        Text(
+                          "Welcome to the world of possibilities!\n Discover your true calling and find the career\n path that lights up your future.",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.roboto(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                        SizedBox(height: 25),
+                        RoundedButton(
+                            title: "Next",
+                            onTap: () {
+                              Get.to(() => Intro2Screen());
+                            }),
+                        SizedBox(height: 10),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            // crossAxisAlignment: CrossAxisAlignment.end,
+                            // mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  Get.to(() => LoginScreen());
+                                },
+                                child: Text(
+                                  "Skip",
+                                  style: GoogleFonts.roboto(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w400,
+                                    color: Color(0xff2F80ED),
+                                  ),
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 3,
+                              color: Color(0xff2F80ED),
+                            ),
+                            SizedBox(width: 5),
+                            Container(
+                              width: 40,
+                              height: 3,
+                              color: Color.fromARGB(255, 42, 43, 44),
                             ),
                           ],
                         ),
-                      ),
-                      SizedBox(height: 20),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 3,
-                            color: Color(0xff2F80ED),
-                          ),
-                          SizedBox(width: 5),
-                          Container(
-                            width: 40,
-                            height: 3,
-                            color: Color.fromARGB(255, 42, 43, 44),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

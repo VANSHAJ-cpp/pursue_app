@@ -2,13 +2,11 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:pursue/mobile_screens/shopping/career_result.dart';
-import 'package:pursue/mobile_screens/payment/payment_details.dart';
 
 List<String> tappedOptions = [];
 String amount = "";
@@ -26,11 +24,13 @@ class Question {
 }
 
 class ChatScreen1 extends StatefulWidget {
+  
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen1> {
+  final ScrollController _scrollController = ScrollController();
   List<Map<String, String>> messages = [];
   List<Map<String, String>> originalMessages = [];
   bool isNextSectionFetched = false;
@@ -41,65 +41,78 @@ class _ChatScreenState extends State<ChatScreen1> {
   List<List<String>> subOptions = [];
   List<String> res = [];
   String? nextSection;
-  String customerID = '__';
-  String orderId = '__';
-  bool isUserPaid = false;
+  bool showAllOptions = false;
 
   String selectedProfession = "";
   List<Question> questions = [];
   int currentQuestionIndex = 0;
   bool isFetchingQuestions = false;
   bool isProfessionSelected = false;
+  String userId = "";
 
   @override
   void initState() {
     super.initState();
     print("initState");
     fetchData();
-    getUserInfo();
   }
 
-  void getUserInfo() {
-    final User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final String? name = user.displayName;
-      final String? email = user.email;
-      print(name);
-      if (name != null) {
-        setState(() {
-          userName = name;
-          userEmail = email!;
-        });
-
-        debugPrint('Name: $userName');
-        debugPrint('Email: $userEmail');
-        // savePaymentDetails();
-      }
-    }
+  void dispose() {
+    // Dispose the ScrollController when not needed
+    _scrollController.dispose();
+    super.dispose();
   }
 
-
-  Future<void> savePaymentDetails() async {
-    var paymentDetails = PaymentDetails(
-      userName: userName, 
-      customerID: customerID, 
-      orderID: orderId, 
-      userEmail: userEmail, 
-      timestamp: DateTime.now(),
-      tappedOptions: tappedOptions,
-      careerSuggesed: careerSuggesed,
-      isUserPaid: isUserPaid
+  void _scrollToBottom() {
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeOut,
     );
+  }
+
+  void getCurrentUserUid() {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    userId = user.uid;
+    print('Current user UID: $userId');
+    // Now you can use this UID to access the user's document in Firestore and update their information
+  } else {
+    print('No user currently signed in.');
+  }
+}
+
+  void printUserIds() async {
+  // Get the current user
+  User? user = FirebaseAuth.instance.currentUser;
+
+  // If user is signed in
+  if (user != null) {
+    String uid = user.uid;
+    print('Current user UID (Authentication): $uid');
 
     try {
-      await FirebaseFirestore.instance
-          .collection('payment_details')
-          .add(paymentDetails.toMap());
-          print("user name: $userName \n"  "user email: $userEmail \n" "customerID: $customerID \n" "orderID: $orderId \n" "time stamp: ${DateTime.now} \n" "tapped Options: $tappedOptions");
+      // Query the 'Users' subcollection based on the user's UID
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Users').where('uid', isEqualTo: uid).get();
+
+      // If a document exists
+      if (querySnapshot.docs.isNotEmpty) {
+        // Loop through the documents (should be only one in this case)
+        for (DocumentSnapshot doc in querySnapshot.docs) {
+          // Get the document ID
+          String documentID = doc.id;
+          print('Document ID of the user in Firestore Users subcollection: $documentID');
+        }
+      } else {
+        print('User document not found in Firestore Users subcollection.');
+      }
     } catch (e) {
-      print("Error saving payment details: $e");
+      print('Error retrieving user document from Firestore: $e');
     }
+  } else {
+    print('No user currently signed in.');
   }
+}
 
   Future<void> fetchPaymentSettingsAndNavigate() async {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -126,7 +139,6 @@ class _ChatScreenState extends State<ChatScreen1> {
           ),
         );
       } else {
-        // Navigate to the resultant screen as no payment is required
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const PostPaymentScreen(),
@@ -135,11 +147,9 @@ class _ChatScreenState extends State<ChatScreen1> {
       }
     } else {
       print("No payment settings found.");
-      // Handle the scenario when there's no settings data in Firestore
     }
   } catch (e) {
     print('Error fetching payment settings: $e');
-    // Handle the error, maybe show a dialog or a snackbar
   }
 }
 
@@ -189,14 +199,15 @@ class _ChatScreenState extends State<ChatScreen1> {
     _sendMessage("Bot", botMessage, useAvatar: true, isOption: false);
 
     if (question.options.isNotEmpty) {
+      _scrollToBottom();
       for (String option in question.options) {
         _sendMessage("Bot", option, isOption: true, useAvatar: false);
       }
     }
-
     setState(() {
       originalMessages = List.from(messages);
     });
+    _scrollToBottom();
   }
 
   void _handleProfessionSelection(String selectedOption) {
@@ -376,12 +387,6 @@ class _ChatScreenState extends State<ChatScreen1> {
             );
           },
         );
-        
-        // ignore: use_build_context_synchronously
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => CareerResultScreen(hyperSDK: hyperSDK,)),
-        // );
         fetchPaymentSettingsAndNavigate();
       } else {
         print("Condition not met");
@@ -421,42 +426,16 @@ class _ChatScreenState extends State<ChatScreen1> {
     });
   }
 
-  void _showAllOptionsDialog(List<String> options) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("All Options"),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (String option in options)
-                Text(option, style: const TextStyle(fontSize: 15)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child:const Text("Close"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildMessage(String message, bool isMe, bool isBot,
       {bool isOption = false}) {
-    final alignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment =
+        isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final color = isMe ? Color(0xFF2F80ED) : const Color(0xFFEAF2FD);
     final textColor = isMe ? Colors.white : Colors.black87;
 
     return Column(
       crossAxisAlignment: alignment,
       children: [
-        if (isBot) _buildChatBotAvatar(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           margin: isMe
@@ -487,7 +466,6 @@ class _ChatScreenState extends State<ChatScreen1> {
                 style: TextStyle(
                     fontSize: 15,
                     fontFamily: 'Mazzard',
-                    // fontWeight: FontWeight.w600,
                     color: textColor),
               ),
               if (isOption) _buildOptions(message),
@@ -499,64 +477,67 @@ class _ChatScreenState extends State<ChatScreen1> {
   }
 
   Widget _buildOptions(String optionsString) {
-    List<String> options = optionsString.split(',');
-    bool shouldShowReadMore = options.length > 5;
-    List<String> displayOptions =
-        shouldShowReadMore ? options.sublist(0, 5) : options;
+  List<String> options = optionsString.split(',');
+  bool shouldShowReadMore = options.length > 5;
+  List<String> displayOptions = shouldShowReadMore ? options.sublist(0, 5) : options;
+  bool showAllOptions = false;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          border: Border.all(color: Color(0xFFBFDCFF)),
-          color: const Color(0xFFEAF2FD),
-          borderRadius: BorderRadius.circular(15.0),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (var option in displayOptions)
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        border: Border.all(color: Color(0xFFBFDCFF)),
+        color: Color(0xFFEAF2FD),
+        borderRadius: BorderRadius.circular(15.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < displayOptions.length; i++)
+            TextButton(
+              onPressed: () {
+                _handleOptionSelected(displayOptions[i]);
+              },
+              child: Center(
+                child: Text(displayOptions[i],
+                    style: GoogleFonts.raleway(
+                        fontSize: 16,
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500)),
+              ),
+            ),
+          if (shouldShowReadMore)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  showAllOptions = !showAllOptions;
+                });
+              },
+              child: Text(showAllOptions ? 'Show Less' : 'Load More'),
+            ),
+          if (showAllOptions)
+            for (var i = 5; i < options.length; i++)
               TextButton(
                 onPressed: () {
-                  _handleOptionSelected(option);
+                  _handleOptionSelected(options[i]);
                 },
                 child: Center(
-                  child: Text(option,
-                      style: GoogleFonts.raleway  (
+                  child: Text(options[i],
+                      style: GoogleFonts.raleway(
                           fontSize: 16,
                           color: Colors.black,
                           fontWeight: FontWeight.w500)),
                 ),
               ),
-            if (shouldShowReadMore)
-              TextButton(
-                onPressed: () {
-                  _showAllOptionsDialog(options);
-                },
-                child: const Text('Read More'),
-              ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildChatBotAvatar() {
-    return CircleAvatar(
-      radius: 70,
-      backgroundColor: Colors.blue[300],
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SvgPicture.asset(
-          'assets/images/pursue_logo.svg',
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
 
   Widget _buildTypingIndicator() {
     return Container(
@@ -669,6 +650,7 @@ class _ChatScreenState extends State<ChatScreen1> {
               ),
               Expanded(
                 child: ListView.builder(
+                  controller: _scrollController,
                   itemCount: messages.length,
                   itemBuilder: (BuildContext context, int index) {
                     final messageData = messages[index];
@@ -703,3 +685,5 @@ class _ChatScreenState extends State<ChatScreen1> {
     );
   }
 }
+
+

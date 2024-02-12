@@ -11,7 +11,6 @@ import 'package:pursue/common_widgets/rounded_btn.dart';
 import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
 import 'package:pursue/mobile_screens/payment/payment_screen.dart';
-import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';

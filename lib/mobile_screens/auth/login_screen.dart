@@ -1,5 +1,7 @@
 // ignore_for_file: prefer__ructors, prefer__literals_to_create_immutables, prefer_const_constructors, prefer_const_literals_to_create_immutables
 
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pursue/common_widgets/common_logo.dart';
 import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
+import 'package:http/http.dart' as http;
 import 'package:pursue/mobile_screens/auth/sign_up_with_emailandpass.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -189,63 +192,65 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         userName = name;
         userEmail = email;
-        adduserdetails(
+        var id = DateTime.now().millisecondsSinceEpoch.toString();
+        createUser(
+          id,
           name,
           email,
         );
       }
     } catch (e) {
-      AppToast().toastMessage(e.toString());
+      AppToast().toastMessage("Error signing in with Google! please try after some time or try signing up");
       debugPrint('Error signing in with Google: $e');
     }
   }
 
-  Future adduserdetails(String name, String email,
-      {int? phoneNumber,
-      bool? didStartChatbot,
-      bool? isPaidUser,
-      List<String>? options,
-      List<String>? finalCareerOptions}) async {
-    // Check if user with the same email already exists
-    final existingDocs = await FirebaseFirestore.instance
-        .collection('users')
-        .where('Email', isEqualTo: email)
-        .get();
+  Future<void> createUser(String id, String name, String email) async {
+    // Define the endpoint URL
+    String apiUrl = 'https://api.pursueit.in/user/addUser';
+    Map<String, dynamic> userData = {
+      'UserID': id,
+      'OrderID': "__",
+      'CustomerID': "CID$id",   
+      'Name': name,
+      'Email': email,
+      'PhoneNumber': 0,
+      'DidStartChatbot': false,
+      'IsPaidUser': false,
+      'Options': [],
+      'FinalCareerOptions': [],
+    };
+    String requestBody = jsonEncode(userData);
 
-    if (existingDocs.docs.isEmpty) {
-      // Value doesn't exist, so add the data
-      await FirebaseFirestore.instance.collection('users').add({
-        'Name': name,
-        'Email': email,
-        'PhoneNumber': phoneNumber ?? '__',
-        'DidStartChatbot': didStartChatbot ?? '__',
-        'IsPaidUser': isPaidUser ?? '__',
-        'Options': options ?? ['__'],
-        'FinalCareerOptions': finalCareerOptions ?? ['__'],
-      });
-      debugPrint('Data added successfully');
-    } else {
-      // Value already exists, handle accordingly (display a message or take action)
-      debugPrint('User with the same email already exists');
-      AppToast().toastMessage('User with the same email already exists');
+    try {
+      var response = await http.post(
+        Uri.parse(apiUrl),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: requestBody,
+      );
+      if (response.statusCode == 200) {
+        print('User created successfully');
+      } else {
+        print('Failed to create user. Status code: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error creating user: $error');
     }
   }
 
-  // checking already stored data
   Future<void> addDataIfNotExists(String fieldValue) async {
     final firestore = FirebaseFirestore.instance;
     final collection = firestore.collection('users');
 
-    // Check if the value already exists in the collection
     final existingDocs =
         await collection.where('Email', isEqualTo: fieldValue).get();
 
     if (existingDocs.docs.isEmpty) {
-      // Value doesn't exist, so add the data
       await collection.add({'fieldName': fieldValue});
       debugPrint('Data added successfully');
     } else {
-      // Value already exists, handle accordingly (such as displaying a message or not adding)
       debugPrint('Data already exists');
     }
   }

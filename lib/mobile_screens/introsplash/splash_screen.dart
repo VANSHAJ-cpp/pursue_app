@@ -20,15 +20,15 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // if (auth.currentUser != null) {
-    //   Timer(Duration(seconds: 3), () {
-    //     Get.to(() => ChatScreen1());
-    //   });
-    // } else {
+    if (auth.currentUser != null) {
+      Timer(Duration(seconds: 3), () {
+        Get.to(() => ChatScreen1());
+      });
+    } else {
       Timer(Duration(seconds: 3), () {
         Get.to(() => Intro1Screen());
       });
-    // }
+    }
   }
 
   @override
