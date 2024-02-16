@@ -162,7 +162,7 @@ void main() async {
                   "We have found 3 options which we feel would be a good fit to personal skills and interests!",
             ),
           ),
-          Spacer(),
+          // Spacer(),
           Container(
             height: 450,
             decoration: BoxDecoration(
@@ -180,83 +180,85 @@ void main() async {
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 20),
-                  SvgPicture.asset(
-                    "assets/images/success_person.svg",
-                    width: 186,
-                    height: 125,
-                  ),
-                  const SizedBox(height: 14),
-                  const Text(
-                    "Your Path, Your Choice:",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 20),
+                    SvgPicture.asset(
+                      "assets/images/success_person.svg",
+                      width: 186,
+                      height: 125,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Explore a world of possibility tailored exclusively for you.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(height: 14),
+                    const Text(
+                      "Your Path, Your Choice:",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Compare options, choose your preferred path, and step confidently towards your dream career.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Explore a world of possibility tailored exclusively for you.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 15),
-                  SingleChildScrollView(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Limited Period Offer @ ",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Compare options, choose your preferred path, and step confidently towards your dream career.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    SingleChildScrollView(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Limited Period Offer @ ",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        Text(
-                          amount,
-                          style: TextStyle(
-                            color: Color(0xff2F80ED),
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                          Text(
+                            amount,
+                            style: TextStyle(
+                              color: Color(0xff2F80ED),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        Text(
-                          " Only!",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                          Text(
+                            " Only!",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 30),
-                  RoundedButton(
-                      title: "Grab the offer Now!",
-                      onTap: () {
-                        initiateHyperSDK();
-                        CircularProgressIndicator();
-                        // Get.to(() => PaymentScreen(hyperSDK: hyperSDK, amount: "50"));
-                      }),
-                  const SizedBox(height: 10),
-                ],
+                    SizedBox(height: 30),
+                    RoundedButton(
+                        title: "Grab the offer Now!",
+                        onTap: () {
+                          initiateHyperSDK();
+                          CircularProgressIndicator();
+                          // Get.to(() => PaymentScreen(hyperSDK: hyperSDK, amount: "50"));
+                        }),
+                    const SizedBox(height: 10),
+                  ],
+                ),
               ),
             ),
           )

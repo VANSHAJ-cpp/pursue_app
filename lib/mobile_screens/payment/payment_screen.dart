@@ -5,17 +5,14 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hypersdkflutter/hypersdkflutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:pursue/mobile_screens/auth/sign_up_with_emailandpass.dart';
+import 'package:hypersdkflutter/hypersdkflutter.dart';
 import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
 import 'package:pursue/mobile_screens/payment/failedScreen.dart';
 import 'package:pursue/mobile_screens/payment/payment_details.dart';
 import 'package:pursue/mobile_screens/payment/successScreen.dart';
-import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/shopping/career_result.dart';
 
 class PaymentScreen extends StatefulWidget {

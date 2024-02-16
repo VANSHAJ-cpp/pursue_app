@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:pursue/mobile_screens/shopping/career_result.dart';
+import 'package:lottie/lottie.dart';
 
 List<String> tappedOptions = [];
 String amount = "";
@@ -21,6 +22,26 @@ class Question {
     required this.options,
     required this.section,
   });
+}
+
+class CareerSuggestion {
+  final List<String> careerSuggestions;
+  final String id;
+  final List<String> parameters;
+
+  CareerSuggestion({
+    required this.careerSuggestions,
+    required this.id,
+    required this.parameters,
+  });
+
+  factory CareerSuggestion.fromJson(Map<String, dynamic> json) {
+    return CareerSuggestion(
+      careerSuggestions: List<String>.from(json['CareerSuggestions']),
+      id: json['ID'],
+      parameters: List<String>.from(json['Parameters']),
+    );
+  }
 }
 
 class ChatScreen1 extends StatefulWidget {
@@ -66,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen1> {
   void _scrollToBottom() {
     _scrollController.animateTo(
       _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.easeOut,
     );
   }
@@ -162,7 +183,7 @@ class _ChatScreenState extends State<ChatScreen1> {
     if (selectedProfession.isNotEmpty) {
       _handleProfessionSelection(selectedProfession);
     }
-    _sendMessage("You", text);
+    _sendMessage("You", text);  
 
     if (currentQuestion.options.isEmpty ||
         currentQuestion.options.contains(text)) {
@@ -196,6 +217,7 @@ class _ChatScreenState extends State<ChatScreen1> {
     print(nextSectionQuestionLength);
     print("selected option list and subOptions list: $optionSelected \n $subOptions");
     String botMessage = question.question;
+    _scrollToBottom();
     _sendMessage("Bot", botMessage, useAvatar: true, isOption: false);
 
     if (question.options.isNotEmpty) {
@@ -359,6 +381,28 @@ class _ChatScreenState extends State<ChatScreen1> {
     _handleSubmitted(selectedOption);
   }
 
+  Future<List<CareerSuggestion>> fetchCareerSuggestions(List<List<String>> userSelectedOptions) async {
+  var response = await http.get(Uri.parse('https://api.pursueit.in/admin/readRepository/Repository'));
+  if (response.statusCode == 200) {
+    List<dynamic> jsonResponse = json.decode(response.body);
+    List<CareerSuggestion> careerSuggestions = jsonResponse.map((data) => CareerSuggestion.fromJson(data)).toList();
+    List<String> matchedCareerSuggestions = [];
+    for (List<String> option in userSelectedOptions) {
+      for (CareerSuggestion suggestion in careerSuggestions) {
+        if (ListEquality().equals(option, suggestion.parameters)) {
+          matchedCareerSuggestions.addAll(suggestion.careerSuggestions);
+        }
+      }
+    }
+    print(matchedCareerSuggestions);
+  }else {
+    throw Exception('Failed to fetch career suggestions');
+  }
+  
+  throw Exception('Failed to fetch career suggestions');
+}
+
+
   void _checkAndNavigate() {
     WidgetsBinding.instance.addPostFrameCallback((_)  {
       print("current Question index after submission: $currentQuestionIndex");
@@ -367,6 +411,16 @@ class _ChatScreenState extends State<ChatScreen1> {
           currentQuestionIndex == nextSectionQuestionLength;
 
       if (selectedProfession != "Basic" && allQuestionsAnswered) {
+        if (subOptions.isNotEmpty) {
+        // Fetch career suggestions based on user-selected options
+        fetchCareerSuggestions(subOptions).then((careerSuggestions) {
+          // Handle fetched career suggestions here
+          print("Fetched Career Suggestions: $careerSuggestions");
+          // Add logic to store career suggestions in res list or perform any other actions
+        }).catchError((error) {
+          print('Error fetching career suggestions: $error');
+        });
+      }
         print(optionSelected);
         selectedOptions = subOptions;
         print(subOptions);
@@ -546,19 +600,17 @@ class _ChatScreenState extends State<ChatScreen1> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
       ),
-      child: const Row(
+      child: Row(
         children:  [
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-            ),
-          ),
+          // Container(
+          //   width: 50,
+          //   height: 30,
+          //   child: const Image(image: AssetImage("assets/Animation - 1707762560224.gif"),)
+          // ),
           SizedBox(width: 10),
           Text(
             "Typing...",
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: 17, letterSpacing: 5),
           ),
         ],
       ),
