@@ -67,7 +67,7 @@ class _PostPaymentScreenState extends State<PostPaymentScreen> {
 
   Future<void> fetchData() async {
     final response = await http
-        .get(Uri.parse('https://api.pursueit.in/admin/careerDescription'));
+        .get(Uri.parse('http://54.160.218.173:80/admin/careerDescription'));
     print(response.statusCode);
     if (response.statusCode == 200) {
       // setState(() {

@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> createUser(String id, String name, String email) async {
     // Define the endpoint URL
-    String apiUrl = 'https://api.pursueit.in/user/addUser';
+    String apiUrl = 'https://54.160.218.173:80/user/addUser';
     Map<String, dynamic> userData = {
       'UserID': id,
       'OrderID': "__",

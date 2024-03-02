@@ -93,24 +93,19 @@ void proceedToPaymentScreen() {
 
 Future<List<String>> fetchCareerSuggestions(List<List<String>> subOptions) async {
   List<String> careerSuggestions = [];
-
-  // Make the API request
-  final response = await http.get(Uri.parse('https://api.pursueit.in/admin/readRepository/Repository'));
+  final response = await http.get(Uri.parse('http://54.160.218.173:80/admin/readRepository/Repository'));
 
   if (response.statusCode == 200) {
-    // Parse the response JSON
+
     List<dynamic> data = json.decode(response.body);
-    
-    // Iterate through each item in subOptions
+
     for (List<String> parameters in subOptions) {
-      // Find matching entry in the response data
       var match = data.firstWhere((entry) {
         List<String> entryParameters = List<String>.from(entry['Parameters']);
         return entryParameters.every((param) => parameters.contains(param));
       }, orElse: () => null);
 
       if (match != null) {
-        // Add CareerSuggestions to the result
         careerResLen = careerSuggestions.length;
         careerSuggestions.addAll(List<String>.from(match['CareerSuggestions']));
       }

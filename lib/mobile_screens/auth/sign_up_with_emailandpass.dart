@@ -276,14 +276,10 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
 
   Future<void> createUser(String id, String name, String email) async {
     try {
-      // Get the current user's UID
       String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
       print(uid);
+      String apiUrl = 'https://pursueit.in:8080/user/addUser';
 
-      // Define the endpoint URL
-      String apiUrl = 'https://api.pursueit.in/user/addUser';
-
-      // Create a JSON object with the user details
       Map<String, dynamic> userData = {
         'UserID': id,
         'OrderID': "__",
@@ -297,10 +293,8 @@ class _SignUpWithEmailPassState extends State<SignUpWithEmailPass> {
         'FinalCareerOptions': [],
       };
 
-      // Convert the user data to JSON format
       String requestBody = jsonEncode(userData);
 
-      // Send a POST request to the API endpoint
       var response = await http.post(
         Uri.parse(apiUrl),
         headers: <String, String>{

@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:pursue/common_widgets/rounded_btn.dart';
 import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/chat/chat_screen1.dart';
 import 'package:pursue/mobile_screens/payment/payment_screen.dart';

@@ -7,10 +7,19 @@ import 'package:http/http.dart' as http;
 import 'package:pursue/main.dart';
 import 'package:pursue/mobile_screens/payment/post_payment_screen.dart';
 import 'package:pursue/mobile_screens/shopping/career_result.dart';
-import 'package:lottie/lottie.dart';
 
 List<String> tappedOptions = [];
 String amount = "";
+String userId = '';
+  String orderId = '';
+  String customerId = '';
+  String name = '';
+  String email = '';
+  int phoneNumber = 0;
+  bool didStartChatbot = false;
+  bool isPaidUser = false;
+  List<String> options = [];
+  List<String> finalCareerOptions = [];
 
 class Question {
   final String question;
@@ -45,7 +54,6 @@ class CareerSuggestion {
 }
 
 class ChatScreen1 extends StatefulWidget {
-  
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
@@ -63,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen1> {
   List<String> res = [];
   String? nextSection;
   bool showAllOptions = false;
+  List<Map<String, dynamic>> paymentInfo = [];
 
   String selectedProfession = "";
   List<Question> questions = [];
@@ -76,6 +85,7 @@ class _ChatScreenState extends State<ChatScreen1> {
     super.initState();
     print("initState");
     fetchData();
+    userInfo();
   }
 
   void dispose() {
@@ -93,97 +103,93 @@ class _ChatScreenState extends State<ChatScreen1> {
   }
 
   void getCurrentUserUid() {
-  User? user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    userId = user.uid;
-    print('Current user UID: $userId');
-    // Now you can use this UID to access the user's document in Firestore and update their information
-  } else {
-    print('No user currently signed in.');
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      userId = user.uid;
+      print('Current user UID: $userId');
+    } else {
+      print('No user currently signed in.');
+    }
   }
-}
 
   void printUserIds() async {
-  // Get the current user
-  User? user = FirebaseAuth.instance.currentUser;
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String uid = user.uid;
+      print('Current user UID (Authentication): $uid');
 
-  // If user is signed in
-  if (user != null) {
-    String uid = user.uid;
-    print('Current user UID (Authentication): $uid');
-
-    try {
-      // Query the 'Users' subcollection based on the user's UID
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('Users').where('uid', isEqualTo: uid).get();
-
-      // If a document exists
-      if (querySnapshot.docs.isNotEmpty) {
-        // Loop through the documents (should be only one in this case)
-        for (DocumentSnapshot doc in querySnapshot.docs) {
-          // Get the document ID
-          String documentID = doc.id;
-          print('Document ID of the user in Firestore Users subcollection: $documentID');
+      try {
+        QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .where('uid', isEqualTo: uid)
+            .get();
+        if (querySnapshot.docs.isNotEmpty) {
+          for (DocumentSnapshot doc in querySnapshot.docs) {
+            String documentID = doc.id;
+            print(
+                'Document ID of the user in Firestore Users subcollection: $documentID');
+          }
+        } else {
+          print('User document not found in Firestore Users subcollection.');
         }
-      } else {
-        print('User document not found in Firestore Users subcollection.');
-      }
-    } catch (e) {
-      print('Error retrieving user document from Firestore: $e');
-    }
-  } else {
-    print('No user currently signed in.');
-  }
-}
-
-  Future<void> fetchPaymentSettingsAndNavigate() async {
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-  try {
-    DocumentSnapshot paymentSettingsSnapshot = 
-        await firestore.collection('settings').doc('paymentInfo').get();
-
-    if (paymentSettingsSnapshot.exists) {
-      Map<String, dynamic> paymentSettings = paymentSettingsSnapshot.data() as Map<String, dynamic>;
-      bool isPaymentOn = paymentSettings['isUpfrontPaymentOn'] ?? false;
-      int paymentAmount = paymentSettings['customUpfrontPayment'] ?? 0;
-      amount = paymentAmount.toString();
-      print(paymentAmount);
-      print(isPaymentOn);
-
-      if (isPaymentOn) {
-        // Navigate to the payment screen with the payment amount
-        await Future.delayed(const Duration(seconds: 5));
-        Navigator.of(context, rootNavigator: true).pop();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => CareerResultScreen(hyperSDK: hyperSDK,),
-          ),
-        );
-      } else {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const PostPaymentScreen(),
-          ),
-        );
+      } catch (e) {
+        print('Error retrieving user document from Firestore: $e');
       }
     } else {
-      print("No payment settings found.");
+      print('No user currently signed in.');
     }
-  } catch (e) {
-    print('Error fetching payment settings: $e');
   }
-}
 
+  Future<void> fetchPaymentSettingsAndNavigate() async {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    try {
+      DocumentSnapshot paymentSettingsSnapshot =
+          await firestore.collection('settings').doc('paymentInfo').get();
+
+      if (paymentSettingsSnapshot.exists) {
+        Map<String, dynamic> paymentSettings =
+            paymentSettingsSnapshot.data() as Map<String, dynamic>;
+        bool isPaymentOn = paymentSettings['isUpfrontPaymentOn'] ?? false;
+        int paymentAmount = paymentSettings['customUpfrontPayment'] ?? 0;
+        amount = paymentAmount.toString();
+        print(paymentAmount);
+        print(isPaymentOn);
+        if (isPaymentOn) {
+          await Future.delayed(const Duration(seconds: 5));
+          Navigator.of(context, rootNavigator: true).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => CareerResultScreen(
+                hyperSDK: hyperSDK,
+              ),
+            ),
+          );
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const PostPaymentScreen(),
+            ),
+          );
+        }
+      } else {
+        print("No payment settings found.");
+      }
+    } catch (e) {
+      print('Error fetching payment settings: $e');
+    }
+  }
 
   void _handleSubmitted(String text) {
     print("_handleSubmitted");
-    print("selected option list and subOptions list: $optionSelected \n $subOptions");
+    print(
+        "selected option list and subOptions list: $optionSelected \n $subOptions");
     _textController.clear();
     Question currentQuestion = questions[currentQuestionIndex];
     if (selectedProfession.isNotEmpty) {
       _handleProfessionSelection(selectedProfession);
     }
-    _sendMessage("You", text);  
+    _sendMessage("You", text);
 
     if (currentQuestion.options.isEmpty ||
         currentQuestion.options.contains(text)) {
@@ -215,7 +221,8 @@ class _ChatScreenState extends State<ChatScreen1> {
 
     print(questions.length);
     print(nextSectionQuestionLength);
-    print("selected option list and subOptions list: $optionSelected \n $subOptions");
+    print(
+        "selected option list and subOptions list: $optionSelected \n $subOptions");
     String botMessage = question.question;
     _scrollToBottom();
     _sendMessage("Bot", botMessage, useAvatar: true, isOption: false);
@@ -234,7 +241,8 @@ class _ChatScreenState extends State<ChatScreen1> {
 
   void _handleProfessionSelection(String selectedOption) {
     print("_handleProfessionSelection");
-    print("selected option list and subOptions list: $optionSelected \n $subOptions");
+    print(
+        "selected option list and subOptions list: $optionSelected \n $subOptions");
     setState(() {
       selectedProfession = selectedOption;
       fetchNextSectionQuestions(selectedOption);
@@ -247,7 +255,7 @@ class _ChatScreenState extends State<ChatScreen1> {
       isFetchingQuestions = true;
     });
 
-    const apiUrl = 'https://api.pursueit.in/admin/readQuestions';
+    const apiUrl = 'http://54.160.218.173:80/admin/readQuestions';
     final response = await http.get(Uri.parse(apiUrl));
 
     if (response.statusCode == 200) {
@@ -293,14 +301,14 @@ class _ChatScreenState extends State<ChatScreen1> {
     if (optionSelected.length == 3) {
       print(optionSelected);
       subOptions.add([...optionSelected]);
-      optionSelected.removeAt(optionSelected.length-1);
+      optionSelected.removeAt(optionSelected.length - 1);
     }
-    if(nextSection == "Working Professional"){
+    if (nextSection == "Working Professional") {
       if (optionSelected.length == 2) {
-      print(optionSelected);
-      subOptions.add([...optionSelected]);
-      optionSelected.removeAt(optionSelected.length-1);
-    }
+        print(optionSelected);
+        subOptions.add([...optionSelected]);
+        optionSelected.removeAt(optionSelected.length - 1);
+      }
     }
   }
 
@@ -311,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen1> {
         isFetchingQuestions = true;
       });
 
-      const apiUrl = 'https://api.pursueit.in/admin/readQuestions';
+      const apiUrl = 'http://54.160.218.173:80/admin/readQuestions';
 
       final response = await http.get(Uri.parse(apiUrl));
 
@@ -320,7 +328,7 @@ class _ChatScreenState extends State<ChatScreen1> {
 
         if (data.containsKey(section)) {
           final List<dynamic> sectionQuestionsData = data[section];
-          if(section == "Working Professional"){
+          if (section == "Working Professional") {
             nextSection = section;
           }
           setState(() {
@@ -346,7 +354,8 @@ class _ChatScreenState extends State<ChatScreen1> {
             print("Next Section question length: $nextSectionQuestionLength");
             print(
                 "currentQuestionIndex inside fetchNextSection function: $currentQuestionIndex");
-                print("selected option list and subOptions list: $optionSelected \n $subOptions");
+            print(
+                "selected option list and subOptions list: $optionSelected \n $subOptions");
           }
         } else {
           print('Error: Section "$section" not found in the API response');
@@ -358,6 +367,41 @@ class _ChatScreenState extends State<ChatScreen1> {
       setState(() {
         isFetchingQuestions = false;
       });
+    }
+  }
+  Future<void> userInfo() async {
+    final response =
+        await http.get(Uri.parse('https://pursueit.in:8080/admin/users'));
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      if (data.containsKey('result')) {
+        setState(() {
+          paymentInfo = List<Map<String, dynamic>>.from(data['result']);
+        });
+        final userDetail = data['result'] as Map<String, dynamic>;
+          userId = userDetail['UserID'] ?? '';
+          orderId = userDetail['OrderID'] ?? '';
+          customerId = userDetail['CustomerID'] ?? '';
+          name = userDetail['Name'] ?? '';
+          email = userDetail['Email'] ?? '';
+          phoneNumber = userDetail['PhoneNumber'] ?? 0;
+          didStartChatbot = userDetail['DidStartChatbot'] ?? false;
+          isPaidUser = userDetail['IsPaidUser'] ?? false;
+          options = List<String>.from(userDetail['Options'] ?? []);
+          finalCareerOptions = List<String>.from(userDetail['FinalCareerOptions'] ?? []);
+          print('User ID: $userId');
+          print('Order ID: $orderId');
+          print('Customer ID: $customerId');
+          print('Name: $name');
+          print('Email: $email');
+          print('Phone Number: $phoneNumber');
+          print('Did Start Chatbot: $didStartChatbot');
+          print('Is Paid User: $isPaidUser');
+          print('Options: $options');
+          print('Final Career Options: $finalCareerOptions');
+      }
+    } else {
+      throw Exception('Failed to load payment info');
     }
   }
 
@@ -381,30 +425,32 @@ class _ChatScreenState extends State<ChatScreen1> {
     _handleSubmitted(selectedOption);
   }
 
-  Future<List<CareerSuggestion>> fetchCareerSuggestions(List<List<String>> userSelectedOptions) async {
-  var response = await http.get(Uri.parse('https://api.pursueit.in/admin/readRepository/Repository'));
-  if (response.statusCode == 200) {
-    List<dynamic> jsonResponse = json.decode(response.body);
-    List<CareerSuggestion> careerSuggestions = jsonResponse.map((data) => CareerSuggestion.fromJson(data)).toList();
-    List<String> matchedCareerSuggestions = [];
-    for (List<String> option in userSelectedOptions) {
-      for (CareerSuggestion suggestion in careerSuggestions) {
-        if (ListEquality().equals(option, suggestion.parameters)) {
-          matchedCareerSuggestions.addAll(suggestion.careerSuggestions);
+  Future<List<CareerSuggestion>> fetchCareerSuggestions(
+      List<List<String>> userSelectedOptions) async {
+    var response = await http.get(
+        Uri.parse('http://54.160.218.173:80/admin/readRepository/Repository'));
+    if (response.statusCode == 200) {
+      List<dynamic> jsonResponse = json.decode(response.body);
+      List<CareerSuggestion> careerSuggestions =
+          jsonResponse.map((data) => CareerSuggestion.fromJson(data)).toList();
+      List<String> matchedCareerSuggestions = [];
+      for (List<String> option in userSelectedOptions) {
+        for (CareerSuggestion suggestion in careerSuggestions) {
+          if (ListEquality().equals(option, suggestion.parameters)) {
+            matchedCareerSuggestions.addAll(suggestion.careerSuggestions);
+          }
         }
       }
+      print(matchedCareerSuggestions);
+    } else {
+      throw Exception('Failed to fetch career suggestions');
     }
-    print(matchedCareerSuggestions);
-  }else {
+
     throw Exception('Failed to fetch career suggestions');
   }
-  
-  throw Exception('Failed to fetch career suggestions');
-}
-
 
   void _checkAndNavigate() {
-    WidgetsBinding.instance.addPostFrameCallback((_)  {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       print("current Question index after submission: $currentQuestionIndex");
       print("Next Section question length: $nextSectionQuestionLength");
       bool allQuestionsAnswered =
@@ -412,15 +458,15 @@ class _ChatScreenState extends State<ChatScreen1> {
 
       if (selectedProfession != "Basic" && allQuestionsAnswered) {
         if (subOptions.isNotEmpty) {
-        // Fetch career suggestions based on user-selected options
-        fetchCareerSuggestions(subOptions).then((careerSuggestions) {
-          // Handle fetched career suggestions here
-          print("Fetched Career Suggestions: $careerSuggestions");
-          // Add logic to store career suggestions in res list or perform any other actions
-        }).catchError((error) {
-          print('Error fetching career suggestions: $error');
-        });
-      }
+          // Fetch career suggestions based on user-selected options
+          fetchCareerSuggestions(subOptions).then((careerSuggestions) {
+            // Handle fetched career suggestions here
+            print("Fetched Career Suggestions: $careerSuggestions");
+            // Add logic to store career suggestions in res list or perform any other actions
+          }).catchError((error) {
+            print('Error fetching career suggestions: $error');
+          });
+        }
         print(optionSelected);
         selectedOptions = subOptions;
         print(subOptions);
@@ -462,7 +508,8 @@ class _ChatScreenState extends State<ChatScreen1> {
   void _sendMessage(String sender, String message,
       {bool isOption = false, bool useAvatar = false}) {
     print("_sendMessage");
-    print("selected option list and subOptions list: $optionSelected \n $subOptions");
+    print(
+        "selected option list and subOptions list: $optionSelected \n $subOptions");
     setState(() {
       if (isOption) {
         messages.add({
@@ -482,8 +529,7 @@ class _ChatScreenState extends State<ChatScreen1> {
 
   Widget _buildMessage(String message, bool isMe, bool isBot,
       {bool isOption = false}) {
-    final alignment =
-        isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final alignment = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final color = isMe ? Color(0xFF2F80ED) : const Color(0xFFEAF2FD);
     final textColor = isMe ? Colors.white : Colors.black87;
 
@@ -518,9 +564,7 @@ class _ChatScreenState extends State<ChatScreen1> {
               Text(
                 message,
                 style: TextStyle(
-                    fontSize: 15,
-                    fontFamily: 'Mazzard',
-                    color: textColor),
+                    fontSize: 15, fontFamily: 'Mazzard', color: textColor),
               ),
               if (isOption) _buildOptions(message),
             ],
@@ -530,7 +574,7 @@ class _ChatScreenState extends State<ChatScreen1> {
     );
   }
 
-  Widget _buildOptions(String optionsString) {
+ Widget _buildOptions(String optionsString) {
   List<String> options = optionsString.split(',');
   bool shouldShowReadMore = options.length > 5;
   List<String> displayOptions = shouldShowReadMore ? options.sublist(0, 5) : options;
@@ -600,13 +644,8 @@ class _ChatScreenState extends State<ChatScreen1> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        children:  [
-          // Container(
-          //   width: 50,
-          //   height: 30,
-          //   child: const Image(image: AssetImage("assets/Animation - 1707762560224.gif"),)
-          // ),
+      child: const Row(
+        children: [
           SizedBox(width: 10),
           Text(
             "Typing...",
@@ -619,11 +658,11 @@ class _ChatScreenState extends State<ChatScreen1> {
 
   Widget _buildTextComposer() {
     return Container(
-      padding:const  EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.only(bottom: 5),
       margin: const EdgeInsets.symmetric(horizontal: 3.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24.0),
-        boxShadow:const [
+        boxShadow: const [
           BoxShadow(
             color: Colors.white,
             blurRadius: 10,
@@ -647,8 +686,8 @@ class _ChatScreenState extends State<ChatScreen1> {
                   hintText: "Type a Message",
                   hintStyle: GoogleFonts.roboto(),
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 10.0),
                 ),
               ),
             ),
@@ -687,11 +726,14 @@ class _ChatScreenState extends State<ChatScreen1> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Padding(
-                padding:const EdgeInsets.only(top: 50.0, bottom: 70),
+                padding: const EdgeInsets.only(top: 50.0, bottom: 70),
                 child: Column(
                   children: [
-                    Container(height: 60, width: 60,
-                      child: Image(image: AssetImage("assets/images/pursue.png"))),
+                    Container(
+                        height: 60,
+                        width: 60,
+                        child: Image(
+                            image: AssetImage("assets/images/pursue.png"))),
                     const Text(
                       "Pursue",
                       style:
@@ -737,5 +779,3 @@ class _ChatScreenState extends State<ChatScreen1> {
     );
   }
 }
-
-

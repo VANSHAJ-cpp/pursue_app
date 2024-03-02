@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_const_constructors, no_logic_in_create_state, prefer_initializing_formals, prefer_interpolation_to_compose_strings
-
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -67,13 +65,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
    void callProcess(amount) async {
     processCalled = true;
     var processPayload = await makeApiCall(amount, userEmail);
-    // Get process payload from backend
-    // block:start:fetch-process-payload
-    // var processPayload = await getProcessPayload(widget.amount);
-    // block:end:fetch-process-payload
 
-    // Calling process on hyperSDK to open the Hypercheckout screen
-    // block:start:process-sdk
     await widget.hyperSDK.process(processPayload, hyperSDKCallbackHandler);
     // block:end:process-sdk
   }
